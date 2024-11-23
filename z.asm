@@ -15,14 +15,14 @@
     fGuava db 'Guava$'
 
     ; Fruits Price
-    pGrapes dw 10.00
-    pApple dw 1.50
-    pOrange dw 2.00
-    pPapaya dw 7.00
-    pWatermelon dw 15.00
-    pStrawberry dw 10.50
-    pPear dw 2.50
-    pGuava dw 3.00
+    pGrapes dw 10
+    pApple dw 2
+    pOrange dw 3
+    pPapaya dw 7
+    pWatermelon dw 15
+    pStrawberry dw 10
+    pPear dw 3
+    pGuava dw 5
 
     ; Fruits Total Sold
     tGrapes dw 0
@@ -45,7 +45,7 @@
     cGuava dw 0
 
     ; Plastic Bag
-    pBag dw 0.50
+    pBag dw 1
     PBagString db 'Plastic Bag$'
 
     ; Summary Report
