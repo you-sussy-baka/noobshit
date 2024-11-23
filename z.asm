@@ -1,8 +1,17 @@
 .model small
 .stack 100h
 .data
-    ; New Line
-    newline     db 0Dh, 0Ah, '$'
+    ; Fruit Store Title
+    line   db '=-=-=-=-=-=-=-=-=-=-=-=-=-=-$'
+    apple1 db "   ,--./,-.   $"
+    apple2 db "  / #      \  $"
+    apple3 db " |          | $"
+    apple4 db "  \        /  $"
+    apple5 db "   `._,._,'   $"
+    storeName db '      ABC FRUIT STORE$      '
+
+    ; System Shutdown
+    shutdown    db 'Shutting down...$'
     
     ; Fruits Name (grapes, apple, orange, papaya, watermelon, strawberry, pear, guava)
     fGrapes     db 'Grapes$'
@@ -53,20 +62,86 @@
 
     ;==============================================================================
 .code
-
-
-
 main proc
+    ; Initialize data segment
+    mov ax, @data
+    mov ds, ax
+
+    loginLoop:
+    ; Print Apple
+    call printApple
     
-     
-    ; Print the string at index 3
-         mov dx, offset string1      ; Move the pointer into DX
-         mov ah, 09h                 ; DOS interrupt to print a string
-         int 21h
+    mov dx, offset line
+    mov ah, 09h
+    int 21h
+    call newline
+    mov dx, offset storeName
+    mov ah, 09h
+    int 21h
+    call newline
+    mov dx, offset line
+    mov ah, 09h
+    int 21h
+
+   
+    ; Print Shutdown Message
+    call newline
+    mov dx, offset shutdown
+    mov ah, 09h
+    int 21h
+    call newline
 
     ; Exit program
-    exit:
-         mov ah, 4Ch
-         int 21h
+    mov ah, 4Ch
+    int 21h
 main endp
+
+printApple proc
+    mov cx, 2
+    printApple1:
+    mov dx, offset apple1
+    mov ah, 09h
+    int 21h
+    loop printApple1
+    call newline
+    mov cx, 2
+    printApple2:
+    mov dx, offset apple2
+    mov ah, 09h
+    int 21h
+    loop printApple2
+    call newline
+    mov cx, 2
+    printApple3:
+    mov dx, offset apple3
+    mov ah, 09h
+    int 21h
+    loop printApple3
+    call newline
+    mov cx, 2
+    printApple4:
+    mov dx, offset apple4
+    mov ah, 09h
+    int 21h
+    loop printApple4
+    call newline
+    mov cx, 2
+    printApple5:
+    mov dx, offset apple5
+    mov ah, 09h
+    int 21h
+    loop printApple5
+    call newline
+    ret
+printApple endp
+
+newline proc
+    mov ah, 02h
+    mov dl, 0Dh
+    int 21h
+    mov dl, 0Ah
+    int 21h
+    ret
+newline endp
+
 end main
