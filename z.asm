@@ -50,20 +50,6 @@
 
     ; Summary Report
     totalProfit dw 0
-    
-    ; Define strings with '$' terminators
-    string1 db 'String abc$'
-    string2 db 'String def$'
-    string3 db 'String ghi$'
-    string4 db 'String afew$'
-    string5 db 'String afew$'
-
-    ; Define an array of pointers to the strings
-    stringPtrs dw offset string1
-               dw offset string2
-               dw offset string3
-               dw offset string4
-               dw offset string5
 
 ;==============================================================================
 .code
