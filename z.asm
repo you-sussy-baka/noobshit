@@ -44,7 +44,7 @@
     roundUpF dw 0
 
     ; Print Price Proc
-    printPriceI dw 0
+    printPriceI dw 0 ;16bit
     printPriceF dw 0
 
 ;==============================================================================
