@@ -40,8 +40,12 @@
     totalProfitF dw 0
 
     ; Round Up Proc 
-    roundUpInteger dw 0
-    roundUpDecimal dw 0
+    roundUpI dw 0
+    roundUpF dw 0
+
+    ; Print Price Proc
+    printPriceI dw 0
+    printPriceF dw 0
 
 ;==============================================================================
 .code
@@ -87,13 +91,17 @@ main proc
     int 21h
 main endp
 
+printPrice proc
+
+printPrice endp
+
 roundUp proc
-    mov ax, roundUpDecimal
+    mov ax, roundUpF
     xor dx, dx
     mov bx, 100
     div bx
-    add roundUpInteger, ax
-    mov roundUpDecimal, dx
+    add roundUpI, ax
+    mov roundUpF, dx
 roundUp endp
 
 newline proc
