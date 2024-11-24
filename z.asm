@@ -44,8 +44,9 @@
     roundUpF dw 0
 
     ; Print Price Proc
-    printPriceI dw 0 ;16bit
+    printPriceI dw 0
     printPriceF dw 0
+    printPriceTemp db 0
 
 ;==============================================================================
 .code
@@ -92,7 +93,49 @@ main proc
 main endp
 
 printPrice proc
+    mov printPriceTemp, 0
+    mov cx, printPriceI
+    storeInteger:
+        xor dx, dx
+        mov ax, cx
+        mov bx, 10
+        div bx
+        push dx
+        mov cx, ax
+        inc printPriceTemp
+    loop storeInteger
 
+    mov cx, printPriceTemp
+    printInteger:
+        pop dx
+        add dl, 48
+        mov ah, 02h
+        int 21h
+    loop printInteger
+
+    mov printPriceTemp, 0
+    mov cx, printPriceD
+    storeDecimal:
+        xor dx, dx
+        mov ax, cx
+        mov bx, 10
+        div bx
+        push dx
+        mov cx, ax
+        inc printPriceTemp
+    loop storeDecimal
+
+    mov ah, 02h
+	mov dl, '.'
+	int 21h
+
+    mov cx, printPriceTemp
+    printDecimal:
+        pop dx
+        add dl, 48
+        mov ah, 02h 
+        int 21h
+    loop printDecimal
 printPrice endp
 
 roundUp proc
