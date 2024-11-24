@@ -39,6 +39,10 @@
     totalProfitI dw 0
     totalProfitF dw 0
 
+    ; Round Up Proc 
+    roundUpInteger dw 0
+    roundUpDecimal dw 0
+
 ;==============================================================================
 .code
 main proc
@@ -82,6 +86,15 @@ main proc
     mov ah, 4Ch
     int 21h
 main endp
+
+roundUp proc
+    mov ax, roundUpDecimal
+    xor dx, dx
+    mov bx, 100
+    div bx
+    add roundUpInteger, ax
+    mov roundUpDecimal, dx
+roundUp endp
 
 newline proc
     mov ah, 02h
