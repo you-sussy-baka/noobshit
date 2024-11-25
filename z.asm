@@ -29,10 +29,11 @@
 
     ; Buy Fruits
     buyFruits1 db 'What would you like to buy?$'
-    buyFruits2 db '. '
-    buyFruits3 db '- RM '
-    buyFruits4 db ' left)'
+    buyFruits2 db '. $'
+    buyFruits3 db '- RM $'
+    buyFruits4 db ' left)$'
     buyFruits5 db '9. Back to Main Menu$'
+    tmpBuyFruitsCount dw 0
 
     ; System Shutdown
     shutdown db 'Shutting down...$'
@@ -50,7 +51,7 @@
     fruitsName dw offset pointerGrapes, offset pointerApple, offset pointerOrange, offset pointerPapaya, offset pointerWatermelon, offset pointerStrawberry, offset pointerPear, offset pointerGuava
     fruitsIPrice db 7, 2, 1, 5, 18, 9, 4, 2
     fruitsFprice db 0, 20, 80, 0, 0, 0, 50, 50
-    fruitsStock db 50, 50, 50, 50, 50, 50, 50, 50
+    fruitsStock dw 50, 50, 50, 50, 50, 50, 50, 50
 
     ; Cart
     cart db 8 dup(0)
@@ -72,8 +73,8 @@
     printNumberCount db 0
 
     ; Print Price Proc
-    printPriceI dw 4
-    printPriceF dw 99
+    printPriceI dw 0
+    printPriceF dw 0
     printPriceCount db 0
 
     ; Float Multiply Proc
@@ -94,12 +95,12 @@
 
     ; Input Number Proc
     inputNumberI dw 0
-    inputNumberMax dw 100
+    inputNumberMax dw 0
 
     ; Input Price Proc
     inputPriceI dw 0
     inputPriceF dw 0
-    inputPriceMax dw 1000
+    inputPriceMax dw 0
 
     ; Remove Char Proc
     removeCharCount db 0
@@ -200,6 +201,7 @@ customer proc
     ; Invalid Input
     mov dx, offset invalidCustomer
     call error
+    jmp customerLoop
 
     buyFruitsOption:
     call buyFruits
@@ -222,9 +224,88 @@ buyFruits proc
     mov dx, offset buyFruits1
     int 21h
     call newline
+    
     mov cx, fruitsLength
+    printFruits:
+    ; save cx
+    mov tmpBuyFruitsCount, cx
+
+    ; bx = index
+    mov bx, fruitsLength
+    sub bx, cx
+
+    ; Print Number in sequence starting from 1
+    mov dx, bx
+    add dx, 1
+    add dx, 48
+    mov ah, 2
+    int 21h
+
+    mov ah, 09h
+    mov dx, offset buyFruits2
+    int 21h
+
+    ; ax = index * 2
+    ; used for fruitsName array offset
+    mov ax, bx
+    mov dl, 2
+    mul dl
     
+    ; Print Fruit Name
+    mov si, offset fruitsName
+    add si, ax
+    mov dx, [si]
+    mov ah, 09h
+    int 21h
+
+    mov ah, 09h
+    mov dx, offset buyFruits3
+    int 21h
+
+    ; Print Fruit Price
+    mov si, offset fruitsIPrice
+    add si, bx
+    xor ax, ax
+    mov al, [si]
+    mov printPriceI, ax
+    mov si, offset fruitsFPrice
+    add si, bx
+    xor ax, ax
+    mov al, [si]
+    mov printPriceF, ax
+    call printPrice
     
+
+    call tab
+
+    mov ah, 2
+    mov dl, '('
+    int 21h
+
+    ; Print Stock
+    mov si, offset fruitsStock
+    add si, bx
+    mov ax, [si]
+    mov num, ax
+    call printNumber
+
+    mov ah, 09h
+    mov dx, offset buyFruits4
+    int 21h
+ 
+    call newline
+    mov cx, tmpBuyFruitsCount
+    loop printFruits
+
+    mov ah, 09h
+    mov dx, offset buyFruits5
+    int 21h
+    call newline
+
+    call input
+    cmp inputChar, '9'
+    je exitBuyFruitsLoop
+
     ret
 buyFruits endp
 
