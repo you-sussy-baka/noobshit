@@ -40,16 +40,39 @@
     totalProfitI dw 0
     totalProfitF dw 0
 
-    ; Round Up Proc 
-    roundUpI dw 0
-    roundUpF dw 0
+    
 
     ; Print Number Proc (32767 is max value)
     num dw 0
+    printNumberCount db 0
 
     ; Print Price Proc
     printPriceI dw 4
     printPriceF dw 99
+    printPriceCount db 0
+
+    ; Float Multiply Proc
+    floatMulI dw 0
+    floatMulF dw 0
+    floatMultiplier db 0
+
+    ; Round Up Proc 
+    roundUpI dw 0
+    roundUpF dw 0
+
+    ; Input Proc
+    inputChar db 0
+
+    ; Hidden Input Proc
+    hiddenInputChar db 0
+
+    ; Input Price Proc
+    inputPriceI dw 0
+    inputPriceF dw 0
+    inputPriceMax dw 1000
+
+    ; Remove Char Proc
+    removeCharCount db 0
 
 ;==============================================================================
 .code
@@ -64,14 +87,7 @@ main proc
 
     testing:
     call newline
-    mov roundUpI, 10
-    mov roundUpF, 9543
-    call roundUp
-    mov ax, roundUpI
-    mov printPriceI, ax
-    mov ax, roundUpF
-    mov printPriceF, ax
-    call printPrice
+    call inputPrice
     call newline
 
     exit:
@@ -114,6 +130,7 @@ printNumber proc
     mov ax, 1 ; ax is the divisor
     mov bx, num
     cmp bx, 10
+    mov printNumberCount, 1
     jl singleDigit ; If num < 10, handle as single digit
 
     testDivisor:
@@ -122,6 +139,7 @@ printNumber proc
     cmp ax, num
     jg doneDivisor ; Exit loop if divisor exceeds num
     push ax ; save divisor (10, 100, 1000, 10000)
+    inc printNumberCount
     cmp ax, 10000
     je doneDivisor ; Exit loop if divisor is 10000, since it will overflow
     jmp testDivisor
@@ -146,11 +164,11 @@ printNumber proc
     int 21h
     ; Logic behind the loop
     ; digitOne = num1 / 1000;
-	; num1 = num1 % 1000;
-	; digitTwo = num1 / 100;
-	; num1 = num1 % 100;
-	; digitThree = num1 / 10;
-	; digitFour = num1 % 10;
+    ; num1 = num1 % 1000;
+    ; digitTwo = num1 / 100;
+    ; num1 = num1 % 100;
+    ; digitThree = num1 / 10;
+    ; digitFour = num1 % 10;
     ret
 
     singleDigit:
@@ -165,10 +183,13 @@ printPrice proc
     mov ax, printPriceI
     mov num, ax
     call printNumber
+    mov al, printNumberCount
+    mov printPriceCount, al
 
     mov dl, "."
     mov ah, 2
     int 21h
+    inc printPriceCount
 
     ; Print Floating Part
     xor dx, dx
@@ -184,9 +205,26 @@ printPrice proc
     add dl, 48
     mov ah, 2
     int 21h
+    add printPriceCount, 2
 
     ret
 printPrice endp
+
+floatMul proc
+    mov ax, floatMulI
+    mov bl, floatMultiplier
+    mul bl
+    mov roundUpI, ax
+    mov ax, floatMulF
+    mul bl
+    mov roundUpF, ax
+    call roundUp
+    mov ax, roundUpI
+    mov floatMulI, ax
+    mov ax, roundUpF
+    mov floatMulF, ax
+    ret
+floatMul endp
 
 roundUp proc
     mov ax, roundUpF
@@ -197,6 +235,119 @@ roundUp proc
     mov roundUpF, dx
     ret
 roundUp endp
+
+input proc
+    mov ah, 1
+    int 21h
+    mov inputChar, al
+    ret
+input endp
+
+hiddenInput proc
+    mov ah, 7
+    int 21h
+    mov hiddenInputChar, al
+    ret
+hiddenInput endp
+
+inputPrice proc
+    mov inputPriceI, 0
+    mov inputPriceF, 0
+
+    mov printPriceI, 0
+    mov printPriceF, 0
+    call printPrice
+
+    getInputLoop:
+    call hiddenInput
+    cmp hiddenInputChar, 13
+    je exitInputLoop
+    cmp hiddenInputChar, 8
+    je priceBackspace
+
+    ; Check if input is a digit
+    cmp hiddenInputChar, 48
+    jl getInputLoop
+    cmp hiddenInputChar, 57
+    jg getInputLoop
+
+    mov ax, inputPriceI
+    mov bx, 10
+    mul bx
+    mov roundUpI, ax
+    mov ax, inputPriceF
+    mov bx, 10
+    mul bx
+    mov roundUpF, ax
+    call roundUp
+    mov ax, roundUpI
+    mov inputPriceI, ax
+    mov ax, roundUpF
+    mov inputPriceF, ax
+    ; i *= 10
+    ; f *= 10
+    ; roundup
+
+    xor ax, ax
+    mov al, hiddenInputChar
+    sub ax, 48
+    add inputPriceF, ax
+    ; f += input
+
+    ; Remove previous output
+    mov al, printPriceCount
+    mov removeCharCount, al
+    call removeChar
+
+    ; Print new output
+    mov ax, inputPriceI
+    mov printPriceI, ax
+    mov ax, inputPriceF
+    mov printPriceF, ax
+    call printPrice
+
+    ; Check whether input exceeds max value
+    mov ax, inputPriceI
+    cmp ax, inputPriceMax
+    jl getInputLoop
+    
+    exitInputLoop:
+    ret
+
+    priceBackspace:
+    xor dx, dx
+    mov ax, inputPriceF
+    mov bx, 10
+    div bx
+    mov inputPriceF, ax
+    ; f /= 10
+
+    xor dx, dx
+    mov ax, inputPriceI
+    mov bx, 10
+    div bx
+    mov inputPriceI, ax
+    mov ax, dx
+    mov bl, 10
+    mul bl
+    add inputPriceF, ax
+    ; i /= 10
+    ; f += (10 * remainder)
+
+    ; Remove previous output
+    mov al, printPriceCount
+    mov removeCharCount, al
+    call removeChar
+
+    ; Print new output
+    mov ax, inputPriceI
+    mov printPriceI, ax
+    mov ax, inputPriceF
+    mov printPriceF, ax
+    call printPrice
+
+    jmp getInputLoop
+inputPrice endp
 
 newline proc
     mov ah, 02h
@@ -213,5 +364,28 @@ tab proc
     int 21h
     ret
 tab endp
+
+removeChar proc
+    xor cx, cx
+    mov cl, removeCharCount
+    removeCharLoop:
+    mov dl, 8
+    mov ah, 2
+    int 21h
+    loop removeCharLoop
+    mov cl, removeCharCount
+    addSpace:
+    mov dl, " "
+    mov ah, 2
+    int 21h
+    loop addSpace
+    mov cl, removeCharCount
+    setCursorBack:
+    mov dl, 8
+    mov ah, 2
+    int 21h
+    loop setCursorBack
+    ret
+removeChar endp
 
 end main
