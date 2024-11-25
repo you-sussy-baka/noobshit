@@ -17,7 +17,6 @@
     login1 db 'You are a...$'
     login2 db '1. Customer$'
     login3 db '2. Admin$'
-    invalidLogin db "Invalid option! You can only choose 1 or 2$"
     exitLoginLoop db 0
 
     ; Customer Menu
@@ -25,48 +24,66 @@
     customer2 db '1. Buy Fruits$'
     customer3 db '2. View Cart$'
     customer4 db '3. Logout$'
-    invalidCustomer db "Invalid option! You can only choose 1-3$"
 
     ; Buy Fruits
     buyFruits1 db 'What would you like to buy?$'
     buyFruits2 db '. $'
     buyFruits3 db '- RM $'
     buyFruits4 db ' left)$'
-    buyFruits5 db '9. Back to Main Menu$'
+    buyFruits5 db '8. Back to Main Menu$'
     tmpBuyFruitsCount dw 0
+    selectedBuyFruits db 0
+
+    ; Select Buy Fruits
+    selectBuyFruits1 db 'You have $'
+    selectBuyFruits2 db '(s) in your cart'
+    selectBuyFruits3 db '1. Add to Cart$'
+    selectBuyFruits4 db '2. Back$'
 
     ; System Shutdown
     shutdown db 'Shutting down...$'
     
-    ; Fruits (grapes 7, apple 2.2, orange 1.8, papaya 5, watermelon 18, strawberry 9, pear 4.5, guava 2.5)
-    pointerGrapes     db 'Grapes      $'
-    pointerApple      db 'Apple       $'
-    pointerOrange     db 'Orange      $'
-    pointerPapaya     db 'Papaya      $'
-    pointerWatermelon db 'Watermelon  $'
-    pointerStrawberry db 'Strawberry  $'
-    pointerPear       db 'Pear        $'
-    pointerGuava      db 'Guava       $'
-    fruitsLength equ 8
-    fruitsName dw offset pointerGrapes, offset pointerApple, offset pointerOrange, offset pointerPapaya, offset pointerWatermelon, offset pointerStrawberry, offset pointerPear, offset pointerGuava
-    fruitsIPrice db 7, 2, 1, 5, 18, 9, 4, 2
-    fruitsFprice db 0, 20, 80, 0, 0, 0, 50, 50
-    fruitsStock dw 50, 50, 50, 50, 50, 50, 50, 50
+    ; Fruits (apple 2.2, orange 1.8, papaya 5, watermelon 18, pear 4.5, guava 2.5, durian 50)
+    fruitsNamepointerApple      db 'Apple$'
+    fruitsNamepointerOrange     db 'Orange$'
+    fruitsNamepointerPapaya     db 'Papaya$'
+    fruitsNamepointerWatermelon db 'Watermelon$'
+    fruitsNamepointerPear       db 'Pear$'
+    fruitsNamepointerGuava      db 'Guava$'
+    fruitsNamepointerDurian     db 'Durian$'
+    fruitsNameLongpointerApple      db 'Apple       $'
+    fruitsNameLongpointerOrange     db 'Orange      $'
+    fruitsNameLongpointerPapaya     db 'Papaya      $'
+    fruitsNameLongpointerWatermelon db 'Watermelon  $'
+    fruitsNameLongpointerPear       db 'Pear        $'
+    fruitsNameLongpointerGuava      db 'Guava       $'
+    fruitsNameLongpointerDurian     db 'Durian      $'
+    fruitsLength equ 7
+    fruitsName dw offset fruitsNamepointerApple, offset fruitsNamepointerOrange, offset fruitsNamepointerPapaya, offset fruitsNamepointerWatermelon, offset fruitsNamepointerPear, offset fruitsNamepointerGuava, offset fruitsNamepointerDurian
+    fruitsNameLong dw offset fruitsNameLongpointerApple, offset fruitsNameLongpointerOrange, offset fruitsNameLongpointerPapaya, offset fruitsNameLongpointerWatermelon, offset fruitsNameLongpointerPear, offset fruitsNameLongpointerGuava, offset fruitsNameLongpointerDurian
+    fruitsIPrice db 2, 1, 5, 18, 4, 2, 50
+    fruitsFprice db 20, 80, 0, 0, 50, 50, 0
+    fruitsStock dw 20, 100, 50, 20, 10, 50, 30
 
     ; Cart
-    cart db 8 dup(0)
+    cart db 7 dup(0)
 
     ; Plastic Bag
     pFBag       db 50 ;RM0.50
     PBagString  db 'Plastic Bag $'
 
     ; Summary Report
-    fruitsSold db 8 dup(0)
+    fruitsSold db 7 dup(0)
     totalProfitI dw 0
     totalProfitF dw 0
 
     ; System Pause
     syspauseString db 'Press any key to continue...$'
+
+    ; Invalid Number Proc
+    invalidNumberMax db 0
+    invalidNumberString db 'Invalid number! You can only choose 1$'
+    invalidNumberOr db " or 2$"
 
     ; Print Number Proc (32767 is max value)
     num dw 0
@@ -138,8 +155,8 @@ main proc
     je adminOption
 
     ; Invalid Input
-    mov dx, offset invalidLogin
-    call error
+    mov invalidNumberMax, 2
+    call invalidNumber
     jmp loginLoop
 
     customerOption:
@@ -199,8 +216,8 @@ customer proc
     je exitCustomerLoop
 
     ; Invalid Input
-    mov dx, offset invalidCustomer
-    call error
+    mov invalidNumberMax, 3
+    call invalidNumber
     jmp customerLoop
 
     buyFruitsOption:
@@ -246,13 +263,13 @@ buyFruits proc
     int 21h
 
     ; ax = index * 2
-    ; used for fruitsName array offset
+    ; used for fruitsNameLong array offset
     mov ax, bx
     mov dl, 2
     mul dl
     
     ; Print Fruit Name
-    mov si, offset fruitsName
+    mov si, offset fruitsNameLong
     add si, ax
     mov dx, [si]
     mov ah, 09h
@@ -274,7 +291,6 @@ buyFruits proc
     mov al, [si]
     mov printPriceF, ax
     call printPrice
-    
 
     call tab
 
@@ -303,11 +319,47 @@ buyFruits proc
     call newline
 
     call input
-    cmp inputChar, '9'
+    cmp inputChar, '8'
     je exitBuyFruitsLoop
+    cmp inputChar, '1'
+    jl invalidBuyFruitsInput
+    cmp inputChar, '7'
+    jg invalidBuyFruitsInput
 
+    mov selectedBuyFruits, inputChar
+    sub selectedBuyFruits, 48
+    call selectBuyFruits
+    jmp buyFruitsLoop
+
+    invalidBuyFruitsInput:
+    mov invalidNumberMax, 9
+    call invalidNumber
+    jmp buyFruitsLoop
+
+    exitBuyFruitsLoop:
     ret
 buyFruits endp
+
+selectBuyFruits proc
+    
+
+    selectBuyFruitsLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+
+    mov ah, 9
+    mov dx, offset selectBuyFruits1
+    int 21h
+
+    mov ah, 2
+
+
+
+    exitSelectBuyFruitsLoop:
+    ret
+selectBuyFruits endp
 
 viewCart proc
 
@@ -352,19 +404,40 @@ syspause proc
     ret
 syspause endp
 
-error proc
-    mov bx, dx
+invalidNumber proc
     call newline
     call newline
-    mov dx, bx
+    mov dx, offset invalidNumberString
     mov ah, 9
     int 21h
     call newline
     call newline
     call syspause
+
+    cmp bx, 2
+    je invalidNumberTwo
+    
+    mov ah, 2
+    mov dl, '-'
+    int 21h
+    mov dl, invalidNumberMax
+    add dl, 48
+    int 21h
+
+    jmp invalidNumberSystemPause
+
+    invalidNumberTwo:
+    mov dx, offset invalidNumberOr
+    mov ah, 9
+    int 21h
+
+    invalidNumberSystemPause:
+    call newline
+    call newline
+    call syspause
     call newline
     ret
-error endp
+invalidNumber endp
 
 printNumber proc
     mov ax, 1 ; ax is the divisor
