@@ -27,6 +27,13 @@
     customer4 db '3. Logout$'
     invalidCustomer db "Invalid option! You can only choose 1-3$"
 
+    ; Buy Fruits
+    buyFruits1 db 'What would you like to buy?$'
+    buyFruits2 db '. '
+    buyFruits3 db '- RM '
+    buyFruits4 db ' left)'
+    buyFruits5 db '9. Back to Main Menu$'
+
     ; System Shutdown
     shutdown db 'Shutting down...$'
     
@@ -39,6 +46,7 @@
     pointerStrawberry db 'Strawberry  $'
     pointerPear       db 'Pear        $'
     pointerGuava      db 'Guava       $'
+    fruitsLength equ 8
     fruitsName dw offset pointerGrapes, offset pointerApple, offset pointerOrange, offset pointerPapaya, offset pointerWatermelon, offset pointerStrawberry, offset pointerPear, offset pointerGuava
     fruitsIPrice db 7, 2, 1, 5, 18, 9, 4, 2
     fruitsFprice db 0, 20, 80, 0, 0, 0, 50, 50
@@ -205,7 +213,18 @@ customer proc
 customer endp
 
 buyFruits proc
-
+    buyFruitsLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+    mov ah, 09h
+    mov dx, offset buyFruits1
+    int 21h
+    call newline
+    mov cx, fruitsLength
+    
+    
     ret
 buyFruits endp
 
