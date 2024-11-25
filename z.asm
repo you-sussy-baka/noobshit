@@ -36,7 +36,7 @@
 
     ; Select Buy Fruits
     selectBuyFruits1 db 'You have $'
-    selectBuyFruits2 db '(s) in your cart'
+    selectBuyFruits2 db '(s) in your cart$'
     selectBuyFruits3 db '1. Add to Cart$'
     selectBuyFruits4 db '2. Back$'
 
@@ -44,13 +44,13 @@
     shutdown db 'Shutting down...$'
     
     ; Fruits (apple 2.2, orange 1.8, papaya 5, watermelon 18, pear 4.5, guava 2.5, durian 50)
-    fruitsNamepointerApple      db 'Apple$'
-    fruitsNamepointerOrange     db 'Orange$'
-    fruitsNamepointerPapaya     db 'Papaya$'
-    fruitsNamepointerWatermelon db 'Watermelon$'
-    fruitsNamepointerPear       db 'Pear$'
-    fruitsNamepointerGuava      db 'Guava$'
-    fruitsNamepointerDurian     db 'Durian$'
+    fruitsNamepointerApple      db 'apple$'
+    fruitsNamepointerOrange     db 'orange$'
+    fruitsNamepointerPapaya     db 'papaya$'
+    fruitsNamepointerWatermelon db 'watermelon$'
+    fruitsNamepointerPear       db 'pear$'
+    fruitsNamepointerGuava      db 'guava$'
+    fruitsNamepointerDurian     db 'durian$'
     fruitsNameLongpointerApple      db 'Apple       $'
     fruitsNameLongpointerOrange     db 'Orange      $'
     fruitsNameLongpointerPapaya     db 'Papaya      $'
@@ -66,7 +66,7 @@
     fruitsStock dw 20, 100, 50, 20, 10, 50, 30
 
     ; Cart
-    cart db 7 dup(0)
+    cart db 0, 0, 0, 0, 0, 0, 0
 
     ; Plastic Bag
     pFBag       db 50 ;RM0.50
@@ -326,7 +326,10 @@ buyFruits proc
     cmp inputChar, '7'
     jg invalidBuyFruitsInput
 
-    mov selectedBuyFruits, inputChar
+    xor ax, ax
+    mov al, inputChar
+    mov selectedBuyFruits, al
+    dec selectedBuyFruits ; '1' -> 0
     sub selectedBuyFruits, 48
     call selectBuyFruits
     jmp buyFruitsLoop
@@ -353,9 +356,45 @@ selectBuyFruits proc
     mov dx, offset selectBuyFruits1
     int 21h
 
+    ; Print Fruit Count in Cart
+    mov si, offset cart
+    xor ax, ax
+    mov al, selectedBuyFruits
+    add si, ax
+    xor bx, bx
+    mov bl, [si]
+    mov num, bx
+    call printNumber
+
     mov ah, 2
+    mov dl, ' '
+    int 21h
 
+    ; ax = index * 2
+    ; offset for dw
+    xor ax, ax
+    mov al, selectedBuyFruits
+    mov bl, 2
+    mul bl
 
+    ; Print Fruit Name
+    mov si, offset fruitsName
+    add si, ax
+    mov dx, [si]
+    mov ah, 9
+    int 21h
+
+    mov ah, 9
+    mov dx, offset selectBuyFruits2
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset selectBuyFruits3
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset selectBuyFruits4
+    int 21h
 
     exitSelectBuyFruitsLoop:
     ret
