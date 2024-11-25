@@ -1,8 +1,10 @@
 .model small
 .stack 100h
 .data
+    ; Divider
+    divider     db '=-=-=-=-=-=-=-=-=-=-=-$'
+
     ; Fruit Store Title
-    line        db '=-=-=-=-=-=-=-=-=-=-=-$'
     apple1      db "       ,--./,-.       $"
     apple2      db "      / #      \      $"
     apple3      db "     |          |     $"
@@ -12,11 +14,18 @@
     storeName   db '  FRESH FRUIT STORE  $'
 
     ; Login Screen
-    login db 'You are a...$'
-    login1 db '1. Customer$'
-    login2 db '2. Admin$'
+    login1 db 'You are a...$'
+    login2 db '1. Customer$'
+    login3 db '2. Admin$'
     invalidLogin db "Invalid option! You can only choose 1 or 2$"
     exitLoginLoop db 0
+
+    ; Customer Menu
+    customer1 db 'Welcome! What would you like to do?$'
+    customer2 db '1. Buy Fruits$'
+    customer3 db '2. View Cart$'
+    customer4 db '3. Logout$'
+    invalidCustomer db "Invalid option! You can only choose 1-3$"
 
     ; System Shutdown
     shutdown db 'Shutting down...$'
@@ -100,16 +109,16 @@ main proc
     je exit
 
     call fruitStoreTitle
-    mov dx, offset login
     mov ah, 09h
-    int 21h
-    call newline
     mov dx, offset login1
-    mov ah, 09h
     int 21h
     call newline
-    mov dx, offset login2
     mov ah, 09h
+    mov dx, offset login2
+    int 21h
+    call newline
+    mov ah, 09h
+    mov dx, offset login3
     int 21h
     call newline
 
@@ -138,17 +147,72 @@ main proc
 
     exit:
     call newline
-    mov dx, offset shutdown
+    call newline
     mov ah, 09h
+    mov dx, offset shutdown
     int 21h
     call newline
+    call newline
+
     mov ah, 4Ch
     int 21h
 main endp
 
 customer proc
+    customerLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+    mov ah, 09h
+    mov dx, offset customer1
+    int 21h
+    call newline
+    mov ah, 09h
+    mov dx, offset customer2
+    int 21h
+    call newline
+    mov ah, 09h
+    mov dx, offset customer3
+    int 21h
+    call newline
+    mov ah, 09h
+    mov dx, offset customer4
+    int 21h
+    call newline
+
+    call input
+    cmp inputChar, '1'
+    je buyFruitsOption
+    cmp inputChar, '2'
+    je viewCartOption
+    cmp inputChar, '3'
+    je exitCustomerLoop
+
+    ; Invalid Input
+    mov dx, offset invalidCustomer
+    call error
+
+    buyFruitsOption:
+    call buyFruits
+    jmp customerLoop
+    viewCartOption:
+    call viewCart
+    jmp customerLoop
+
+    exitCustomerLoop:
     ret
 customer endp
+
+buyFruits proc
+
+    ret
+buyFruits endp
+
+viewCart proc
+
+    ret
+viewCart endp
 
 admin proc
     mov exitLoginLoop, 1
@@ -157,9 +221,8 @@ admin endp
 
 fruitStoreTitle proc
     call newline
-    mov dx, offset line
-    mov ah, 09h
-    int 21h
+    call newline
+    call newDivider
     call newline
     mov si, offset appleString
     mov cx, 5
@@ -174,9 +237,7 @@ fruitStoreTitle proc
     mov ah, 09h
     int 21h
     call newline
-    mov dx, offset line
-    mov ah, 09h
-    int 21h
+    call newDivider
     call newline
 
     ret
@@ -186,13 +247,16 @@ syspause proc
     mov dx, offset syspauseString
     mov ah, 09h
     int 21h
-    call newline
     mov ah, 7
     int 21h
     ret
 syspause endp
 
 error proc
+    mov bx, dx
+    call newline
+    call newline
+    mov dx, bx
     mov ah, 9
     int 21h
     call newline
@@ -506,13 +570,20 @@ inputPrice proc
 inputPrice endp
 
 newline proc
-    mov ah, 02h
+    mov ah, 2
     mov dl, 0Dh
     int 21h
     mov dl, 0Ah
     int 21h
     ret
 newline endp
+
+newDivider proc
+    mov dx, offset divider
+    mov ah, 09h
+    int 21h
+    ret
+newDivider endp
 
 tab proc
     mov ah, 02h
