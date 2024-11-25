@@ -11,6 +11,13 @@
     appleString dw offset apple1, offset apple2, offset apple3, offset apple4, offset apple5
     storeName   db '  FRESH FRUIT STORE  $'
 
+    ; Login Screen
+    login db 'You are a...$'
+    login1 db '1. Customer$'
+    login2 db '2. Admin$'
+    invalidLogin db "Invalid option! You can only choose 1 or 2$"
+    exitLoginLoop db 0
+
     ; System Shutdown
     shutdown db 'Shutting down...$'
     
@@ -40,7 +47,8 @@
     totalProfitI dw 0
     totalProfitF dw 0
 
-    
+    ; System Pause
+    syspauseString db 'Press any key to continue...$'
 
     ; Print Number Proc (32767 is max value)
     num dw 0
@@ -62,6 +70,7 @@
 
     ; Input Proc
     inputChar db 0
+    inputOptionString db 'Option > $'
 
     ; Hidden Input Proc
     hiddenInputChar db 0
@@ -86,8 +95,41 @@ main proc
     mov ds, ax
 
     loginLoop:
+    mov al, exitLoginLoop
+    cmp al, 1
+    je exit
+
     call fruitStoreTitle
-    
+    mov dx, offset login
+    mov ah, 09h
+    int 21h
+    call newline
+    mov dx, offset login1
+    mov ah, 09h
+    int 21h
+    call newline
+    mov dx, offset login2
+    mov ah, 09h
+    int 21h
+    call newline
+
+    call input
+    cmp inputChar, '1'
+    je customerOption
+    cmp inputChar, '2'
+    je adminOption
+
+    ; Invalid Input
+    mov dx, offset invalidLogin
+    call error
+    jmp loginLoop
+
+    customerOption:
+    call customer
+    jmp loginLoop
+    adminOption:
+    call admin
+    jmp loginLoop
 
     testing:
     call newline
@@ -103,6 +145,15 @@ main proc
     mov ah, 4Ch
     int 21h
 main endp
+
+customer proc
+    ret
+customer endp
+
+admin proc
+    mov exitLoginLoop, 1
+    ret
+admin endp
 
 fruitStoreTitle proc
     call newline
@@ -130,6 +181,26 @@ fruitStoreTitle proc
 
     ret
 fruitStoreTitle endp
+
+syspause proc
+    mov dx, offset syspauseString
+    mov ah, 09h
+    int 21h
+    call newline
+    mov ah, 7
+    int 21h
+    ret
+syspause endp
+
+error proc
+    mov ah, 9
+    int 21h
+    call newline
+    call newline
+    call syspause
+    call newline
+    ret
+error endp
 
 printNumber proc
     mov ax, 1 ; ax is the divisor
@@ -245,6 +316,9 @@ roundUp proc
 roundUp endp
 
 input proc
+    mov dx, offset inputOptionString
+    mov ah, 09h
+    int 21h
     mov ah, 1
     int 21h
     mov inputChar, al
