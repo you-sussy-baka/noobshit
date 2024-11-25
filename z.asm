@@ -66,6 +66,10 @@
     ; Hidden Input Proc
     hiddenInputChar db 0
 
+    ; Input Number Proc
+    inputNumberI dw 0
+    inputNumberMax dw 100
+
     ; Input Price Proc
     inputPriceI dw 0
     inputPriceF dw 0
@@ -87,7 +91,7 @@ main proc
 
     testing:
     call newline
-    call inputPrice
+    call inputNumber
     call newline
 
     exit:
@@ -101,7 +105,7 @@ main proc
 main endp
 
 fruitStoreTitle proc
-call newline
+    call newline
     mov dx, offset line
     mov ah, 09h
     int 21h
@@ -123,6 +127,7 @@ call newline
     mov ah, 09h
     int 21h
     call newline
+
     ret
 fruitStoreTitle endp
 
@@ -169,6 +174,7 @@ printNumber proc
     ; num1 = num1 % 100;
     ; digitThree = num1 / 10;
     ; digitFour = num1 % 10;
+
     ret
 
     singleDigit:
@@ -176,6 +182,7 @@ printNumber proc
     add dl, 48
     mov ah, 2
     int 21h
+
     ret
 printNumber endp
 
@@ -223,6 +230,7 @@ floatMul proc
     mov floatMulI, ax
     mov ax, roundUpF
     mov floatMulF, ax
+
     ret
 floatMul endp
 
@@ -250,6 +258,78 @@ hiddenInput proc
     ret
 hiddenInput endp
 
+inputNumber proc
+    mov inputNumberI, 0
+
+    mov num, 0
+    call printNumber
+
+    getNumberInputLoop:
+    call hiddenInput
+    cmp hiddenInputChar, 13
+    je exitNumberInputLoop
+    cmp hiddenInputChar, 8
+    je numberBackspace
+
+    ; Check if input is a digit
+    cmp hiddenInputChar, 48
+    jl getNumberInputLoop
+    cmp hiddenInputChar, 57
+    jg getNumberInputLoop
+
+    mov ax, inputNumberI
+    mov bx, 10
+    mul bx
+    mov inputNumberI, ax
+    ; i *= 10
+
+    xor ax, ax
+    mov al, hiddenInputChar
+    sub ax, 48
+    add inputNumberI, ax
+    ; i += input
+
+    ; Remove previous output
+    mov al, printNumberCount
+    mov removeCharCount, al
+    call removeChar
+
+    ; Print new output
+    mov ax, inputNumberI
+    mov num, ax
+    call printNumber
+
+    ; Check whether input exceeds max value
+    mov ax, inputNumberI
+    cmp ax, inputNumberMax
+    jl getNumberInputLoop
+
+    exitNumberInputLoop:
+    ret
+
+    numberBackspace:
+    xor dx, dx
+    mov ax, inputNumberI
+    mov bx, 10
+    div bx
+    mov inputNumberI, ax
+    ; i /= 10
+
+    ; Remove previous output
+    mov al, printNumberCount
+    mov removeCharCount, al
+    call removeChar
+
+    ; Print new output
+    mov ax, inputNumberI
+    mov num, ax
+    call printNumber
+
+    jmp getNumberInputLoop
+
+    ret
+inputNumber endp
+
 inputPrice proc
     mov inputPriceI, 0
     mov inputPriceF, 0
@@ -258,18 +338,18 @@ inputPrice proc
     mov printPriceF, 0
     call printPrice
 
-    getInputLoop:
+    getPriceInputLoop:
     call hiddenInput
     cmp hiddenInputChar, 13
-    je exitInputLoop
+    je exitPriceInputLoop
     cmp hiddenInputChar, 8
     je priceBackspace
 
     ; Check if input is a digit
     cmp hiddenInputChar, 48
-    jl getInputLoop
+    jl getPriceInputLoop
     cmp hiddenInputChar, 57
-    jg getInputLoop
+    jg getPriceInputLoop
 
     mov ax, inputPriceI
     mov bx, 10
@@ -309,9 +389,9 @@ inputPrice proc
     ; Check whether input exceeds max value
     mov ax, inputPriceI
     cmp ax, inputPriceMax
-    jl getInputLoop
+    jl getPriceInputLoop
     
-    exitInputLoop:
+    exitPriceInputLoop:
     ret
 
     priceBackspace:
@@ -346,7 +426,9 @@ inputPrice proc
     mov printPriceF, ax
     call printPrice
 
-    jmp getInputLoop
+    jmp getPriceInputLoop
+
+    ret
 inputPrice endp
 
 newline proc
