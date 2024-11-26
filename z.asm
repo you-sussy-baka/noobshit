@@ -40,6 +40,11 @@
     selectBuyFruits3 db '1. Add to Cart$'
     selectBuyFruits4 db '2. Back$'
 
+    ; Add to Cart
+    addToCart1 db 'Enter quantity > $'
+    invalidAddToCart1 db 'Error: You can only add up to 10 of each fruit to your cart$'
+    invalidAddToCart2 db 'Error: Not enough stock! Try again$'
+
     ; System Shutdown
     shutdown db 'Shutting down...$'
     
@@ -63,10 +68,10 @@
     fruitsNameLong dw offset fruitsNameLongpointerApple, offset fruitsNameLongpointerOrange, offset fruitsNameLongpointerPapaya, offset fruitsNameLongpointerWatermelon, offset fruitsNameLongpointerPear, offset fruitsNameLongpointerGuava, offset fruitsNameLongpointerDurian
     fruitsIPrice db 2, 1, 5, 18, 4, 2, 50
     fruitsFprice db 20, 80, 0, 0, 50, 50, 0
-    fruitsStock dw 20, 100, 50, 20, 10, 50, 30
+    fruitsStock dw 100, 50, 20, 10, 50, 30, 20
 
     ; Cart
-    cart db 0, 0, 0, 0, 0, 0, 0
+    cart db 7 dup(0)
 
     ; Plastic Bag
     pFBag       db 50 ;RM0.50
@@ -82,7 +87,7 @@
 
     ; Invalid Number Proc
     invalidNumberMax db 0
-    invalidNumberString db 'Invalid number! You can only choose 1$'
+    invalidNumberString db 'Invalid option! You can only choose 1$'
     invalidNumberOr db " or 2$"
 
     ; Print Number Proc (32767 is max value)
@@ -262,15 +267,16 @@ buyFruits proc
     mov dx, offset buyFruits2
     int 21h
 
-    ; ax = index * 2
-    ; used for fruitsNameLong array offset
+    ; cx = index * 2
+    ; used for dw array offset
     mov ax, bx
     mov dl, 2
     mul dl
+    mov cx, ax
     
     ; Print Fruit Name
     mov si, offset fruitsNameLong
-    add si, ax
+    add si, cx
     mov dx, [si]
     mov ah, 09h
     int 21h
@@ -300,7 +306,7 @@ buyFruits proc
 
     ; Print Stock
     mov si, offset fruitsStock
-    add si, bx
+    add si, cx
     mov ax, [si]
     mov num, ax
     call printNumber
@@ -335,7 +341,7 @@ buyFruits proc
     jmp buyFruitsLoop
 
     invalidBuyFruitsInput:
-    mov invalidNumberMax, 9
+    mov invalidNumberMax, 8
     call invalidNumber
     jmp buyFruitsLoop
 
@@ -344,8 +350,6 @@ buyFruits proc
 buyFruits endp
 
 selectBuyFruits proc
-    
-
     selectBuyFruitsLoop:
     call newline
     call newline
@@ -395,10 +399,105 @@ selectBuyFruits proc
     mov ah, 9
     mov dx, offset selectBuyFruits4
     int 21h
+    call newline
+
+    call input
+    cmp inputChar, '1'
+    je addToCartOption
+    cmp inputChar, '2'
+    je exitSelectBuyFruitsLoop
+
+    ; Invalid Input
+    mov invalidNumberMax, 2
+    call invalidNumber
+    jmp selectBuyFruitsLoop
+
+    addToCartOption:
+    call addToCart
+    jmp selectBuyFruitsLoop
 
     exitSelectBuyFruitsLoop:
     ret
 selectBuyFruits endp
+
+addToCart proc
+    addToCartLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+
+    mov ah, 9
+    mov dx, offset addToCart1
+    int 21h
+
+    mov inputNumberMax, 10 ; Accept 0-99, 2 digits
+    call inputNumber
+
+    cmp inputNumberI, 0
+    je exitAddToCartLoop
+
+    ; cart db
+    ; al = cart[selectedBuyFruits]
+    mov si, offset cart
+    xor bx, bx
+    mov bl, selectedBuyFruits
+    add si, bx
+    xor ax, ax
+    mov al, [si]
+
+    ; cart += inputNumberI
+    ; invalid if cart > 10
+    add ax, inputNumberI
+    cmp ax, 10
+    jg addToCartInvalidTen
+
+    ; stock dw
+    ; bx = stock[selectedBuyFruits]
+    xor ax, ax
+    mov al, selectedBuyFruits
+    mov bl, 2
+    mul bl
+    mov si, offset fruitsStock
+    add si, ax
+    mov bx, [si]
+
+    ; invalid if quantity > stock
+    cmp inputNumberI, bx
+    jg addToCartInvalidStock
+
+    ; No Error?
+    ; cart[selectedBuyFruits] += inputNumberI
+    mov si, offset cart
+    xor bx, bx
+    mov bl, selectedBuyFruits
+    add si, bx
+    mov dx, inputNumberI
+    add [si], dl
+
+    ; stock[selectedBuyFruits] -= inputNumberI
+    xor ax, ax
+    mov al, selectedBuyFruits
+    mov bl, 2
+    mul bl
+    mov si, offset fruitsStock
+    add si, ax
+    mov bx, inputNumberI
+    sub [si], bx
+
+    exitAddToCartLoop:
+    ret
+    
+    addToCartInvalidTen:
+    mov dx, offset invalidAddToCart1
+    call invalidMsg
+    jmp addToCartLoop
+
+    addToCartInvalidStock:
+    mov dx, offset invalidAddToCart2
+    call invalidMsg
+    jmp addToCartLoop
+addToCart endp
 
 viewCart proc
 
@@ -443,15 +542,26 @@ syspause proc
     ret
 syspause endp
 
+invalidMsg proc
+    mov bx, dx
+    call newline
+    call newline
+    mov dx, bx
+    mov ah, 9
+    int 21h
+    call newline
+    call newline
+    call syspause
+    call newline
+    ret
+invalidMsg endp
+
 invalidNumber proc
     call newline
     call newline
     mov dx, offset invalidNumberString
     mov ah, 9
     int 21h
-    call newline
-    call newline
-    call syspause
 
     cmp bx, 2
     je invalidNumberTwo
