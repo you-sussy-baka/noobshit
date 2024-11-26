@@ -41,16 +41,19 @@
 
     ; Add to Cart
     addToCart1 db 'Enter quantity > $'
-    invalidAddToCart1 db 'Error: You can only add up to 10 of each fruit to your cart$'
-    invalidAddToCart2 db 'Error: Not enough stock! Try again$'
+    invalidAddToCart1 db 'Error: You can only have up to 10 of each fruit in your cart$'
+    invalidAddToCart2 db 'Error: Not enough stock! Try a lower quantity$'
 
     ; View Cart
     viewCart1 db 'Select an item you wish to edit in your cart$'
     viewCart2 db '. $'
     viewCart3 db '(x$'
-    viewCart4 db 'Checkout$'
-    viewCart5 db 'Back to Main Menu$'
-    tmpViewCartCount dw 0
+    viewCart4 db '. Checkout$'
+    viewCart5 db '. Back to Main Menu$'
+    invalidViewCart1 db 'Error: Cart is empty! Try adding something to your cart$'
+
+    ; Edit Cart
+    editCart1 db 'Enter quantity (0 to remove) > $'
 
     ; System Shutdown
     shutdown db 'Shutting down...$'
@@ -282,6 +285,7 @@ buyFruits proc
     mov dl, 2
     mul dl
     mov cx, ax
+    push cx ; save cx used for stock
     
     ; Print Fruit Name
     mov si, offset fruitsNameLong
@@ -315,6 +319,7 @@ buyFruits proc
 
     ; Print Stock
     mov si, offset fruitsStock
+    pop cx ; cx = index * 2
     add si, cx
     mov ax, [si]
     mov num, ax
@@ -344,8 +349,8 @@ buyFruits proc
     xor ax, ax
     mov al, inputChar
     mov selectedBuyFruits, al
-    dec selectedBuyFruits ; '1' -> 0
     sub selectedBuyFruits, 48
+    dec selectedBuyFruits ; '1' -> 0
     call selectBuyFruits
     jmp buyFruitsLoop
 
@@ -513,12 +518,6 @@ viewCart proc
     call newline
     call newline
     call newDivider
-    call newline
-
-    mov ah, 9
-    mov dx, offset viewCart1
-    int 21h
-    call newline
 
     mov cartIndexMax, 0
     mov cx, fruitsLength
@@ -545,6 +544,20 @@ viewCart proc
 
     continueLoopViewCart:
     loop loopViewCart
+
+    ; If cart is empty
+    cmp cartIndexMax, 0
+    jg cartNotEmpty
+    mov dx, offset invalidViewCart1
+    call invalidMsg
+    ret
+
+    cartNotEmpty:
+    call newline
+    mov ah, 9
+    mov dx, offset viewCart1
+    int 21h
+    call newline
 
     ; Print fruits that are in the cart
     xor cx, cx
@@ -595,7 +608,8 @@ viewCart proc
     ; Print Fruit quantity in cart
     mov si, offset cart
     add si, cx
-    mov ax, [si]
+    xor ax, ax
+    mov al, [si]
     mov num, ax
     call printNumber
     
@@ -607,11 +621,95 @@ viewCart proc
     pop cx
     loop loopPrintViewCart
 
+    mov ah, 2
+    mov dl, cartIndexMax
+    add dl, 1
+    add dl, 48
+    int 21h
+    mov ah, 9
+    mov dx, offset viewCart4
+    int 21h
+    call newline
+    mov ah, 2
+    mov dl, cartIndexMax
+    add dl, 2
+    add dl, 48
+    int 21h
+    mov ah, 9
+    mov dx, offset viewCart5
+    int 21h
+    call newline
 
+    call input
+    mov al, cartIndexMax
+    add al, 48
+    inc al
+    cmp inputChar, al ; checkout
+    je checkoutOption
+    inc al
+    cmp inputChar, al ; back to main menu
+    je exitViewCartLoop
+    cmp inputChar, '1'
+    jl invalidViewCart
+    cmp inputChar, al ; input out of range
+    jg invalidViewCart
+
+    sub inputChar, 48
+    dec inputChar ; '1' -> 0
+    mov si, offset cartIndex
+    xor ax, ax
+    mov al, inputChar
+    add si, ax
+    xor cx, cx
+    mov cl, [si] ; cl = real index of the fruit in cart array
+    mov selectedBuyFruits, cl
+    call editCart
+    jmp viewCartLoop
+
+    invalidViewCart:
+    mov invalidNumberMax, al
+    sub invalidNumberMax, 48
+    call invalidNumber
+    jmp viewCartLoop
+
+    checkoutOption:
+    call checkout
+    jmp viewCartLoop
 
     exitViewCartLoop:
     ret
 viewCart endp
+
+editCart proc ; unfinish
+    editCartLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+
+    mov ah, 9
+    mov dx, offset editCart1
+    int 21h
+
+    mov inputNumberMax, 10 ; Accept 0-99, 2 digits
+    call inputNumber
+
+    cmp inputNumberI, 0
+    je removeItemFromCart
+
+
+
+    removeItemFromCart:
+
+
+
+    exitEditCartLoop:
+    ret
+editCart endp
+
+checkout proc
+    ret
+checkout endp
 
 admin proc
     mov exitLoginLoop, 1
@@ -672,9 +770,9 @@ invalidNumber proc
     mov ah, 9
     int 21h
 
-    cmp bx, 2
+    cmp invalidNumberMax, 2
     je invalidNumberTwo
-    
+
     mov ah, 2
     mov dl, '-'
     int 21h
