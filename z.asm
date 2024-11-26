@@ -31,7 +31,6 @@
     buyFruits3 db '- RM $'
     buyFruits4 db ' left)$'
     buyFruits5 db '8. Back to Main Menu$'
-    tmpBuyFruitsCount dw 0
     selectedBuyFruits db 0
 
     ; Select Buy Fruits
@@ -48,7 +47,7 @@
     ; View Cart
     viewCart1 db 'Select an item you wish to edit in your cart$'
     viewCart2 db '. $'
-    viewCart3 db '(×'
+    viewCart3 db '(x$'
     viewCart4 db 'Checkout$'
     viewCart5 db 'Back to Main Menu$'
     tmpViewCartCount dw 0
@@ -150,15 +149,15 @@ main proc
     je exit
 
     call fruitStoreTitle
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset login1
     int 21h
     call newline
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset login2
     int 21h
     call newline
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset login3
     int 21h
     call newline
@@ -189,7 +188,7 @@ main proc
     exit:
     call newline
     call newline
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset shutdown
     int 21h
     call newline
@@ -205,19 +204,19 @@ customer proc
     call newline
     call newDivider
     call newline
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset customer1
     int 21h
     call newline
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset customer2
     int 21h
     call newline
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset customer3
     int 21h
     call newline
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset customer4
     int 21h
     call newline
@@ -252,7 +251,7 @@ buyFruits proc
     call newline
     call newDivider
     call newline
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset buyFruits1
     int 21h
     call newline
@@ -260,7 +259,7 @@ buyFruits proc
     mov cx, fruitsLength
     printFruits:
     ; save cx
-    mov tmpBuyFruitsCount, cx
+    push cx
 
     ; bx = index
     mov bx, fruitsLength
@@ -273,7 +272,7 @@ buyFruits proc
     mov ah, 2
     int 21h
 
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset buyFruits2
     int 21h
 
@@ -288,10 +287,10 @@ buyFruits proc
     mov si, offset fruitsNameLong
     add si, cx
     mov dx, [si]
-    mov ah, 09h
+    mov ah, 9
     int 21h
 
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset buyFruits3
     int 21h
 
@@ -321,15 +320,15 @@ buyFruits proc
     mov num, ax
     call printNumber
 
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset buyFruits4
     int 21h
  
     call newline
-    mov cx, tmpBuyFruitsCount
+    pop cx
     loop printFruits
 
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset buyFruits5
     int 21h
     call newline
@@ -509,7 +508,7 @@ addToCart proc
     jmp addToCartLoop
 addToCart endp
 
-viewCart proc ;Got problem
+viewCart proc
     viewCartLoop:
     call newline
     call newline
@@ -537,44 +536,46 @@ viewCart proc ;Got problem
     je continueLoopViewCart
 
     ; Store cart index
-    mov di, offset cartIndex
-    add di, bx
-    mov [di], bx
+    mov si, offset cartIndex
+    xor dx, dx
+    mov dl, cartIndexMax
+    add si, dx
+    mov [si], bl
     inc cartIndexMax
 
     continueLoopViewCart:
     loop loopViewCart
 
-    ; Print fruits in cart
+    ; Print fruits that are in the cart
     xor cx, cx
     mov cl, cartIndexMax
     loopPrintViewCart:
     ; save cx
-    mov tmpViewCartCount, cx
+    push cx
 
     ; bx = index
     xor bx, bx
     mov bl, cartIndexMax
     sub bx, cx
 
-    ; Print Number in sequence starting from 1
+    ; Print number in sequence starting from 1
     mov dx, bx
     add dx, 1
     add dx, 48
     mov ah, 2
     int 21h
     
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset viewCart2
     int 21h
 
     mov si, offset cartIndex
     add si, bx
     xor cx, cx
-    mov cl, [si] ; cl = index of the fruit in cart array
+    mov cl, [si] ; cl = real index of the fruit in cart array
 
     ; ax = index * 2
-    ; offset for dw
+    ; offset for dw (2 bytes)
     xor ax, ax
     mov al, cl
     mov bl, 2
@@ -587,7 +588,7 @@ viewCart proc ;Got problem
     mov ah, 9
     int 21h
 
-    mov ah, 09h
+    mov ah, 9
     mov dx, offset viewCart3
     int 21h
 
@@ -603,8 +604,10 @@ viewCart proc ;Got problem
     int 21h
 
     call newline
-    mov cx, tmpViewCartCount
+    pop cx
     loop loopPrintViewCart
+
+
 
     exitViewCartLoop:
     ret
@@ -624,13 +627,13 @@ fruitStoreTitle proc
     mov cx, 5
     apple:
     mov dx, [si]
-    mov ah, 09h
+    mov ah, 9
     int 21h
     call newline
     add si, 2
     loop apple
     mov dx, offset storeName
-    mov ah, 09h
+    mov ah, 9
     int 21h
     call newline
     call newDivider
@@ -641,7 +644,7 @@ fruitStoreTitle endp
 
 syspause proc
     mov dx, offset syspauseString
-    mov ah, 09h
+    mov ah, 9
     int 21h
     mov ah, 7
     int 21h
@@ -809,7 +812,7 @@ roundUp endp
 
 input proc
     mov dx, offset inputOptionString
-    mov ah, 09h
+    mov ah, 9
     int 21h
     mov ah, 1
     int 21h
@@ -1008,14 +1011,14 @@ newline endp
 
 newDivider proc
     mov dx, offset divider
-    mov ah, 09h
+    mov ah, 9
     int 21h
     ret
 newDivider endp
 
 tab proc
-    mov ah, 02h
-    mov dl, 09h
+    mov ah, 2
+    mov dl, 9
     int 21h
     ret
 tab endp
