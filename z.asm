@@ -509,7 +509,7 @@ addToCart proc
     jmp addToCartLoop
 addToCart endp
 
-viewCart proc
+viewCart proc ;Got problem
     viewCartLoop:
     call newline
     call newline
