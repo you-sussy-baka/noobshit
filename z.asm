@@ -524,17 +524,13 @@ viewCart proc
     mov cartIndexMax, 0
     mov cx, fruitsLength
     loopViewCart:
-    ; save cx
-    mov tmpViewCartCount, cx
-
     ; bx = index
     mov bx, fruitsLength
     sub bx, cx
 
     mov si, offset cart
     add si, bx
-    xor cx, cx
-    mov cl, [si]
+    mov al, [si]
 
     ; If the fruit is not in the cart
     cmp al, 0
@@ -546,20 +542,69 @@ viewCart proc
     mov [di], bx
     inc cartIndexMax
 
+    continueLoopViewCart:
+    loop loopViewCart
+
+    ; Print fruits in cart
+    xor cx, cx
+    mov cl, cartIndexMax
+    loopPrintViewCart:
+    ; save cx
+    mov tmpViewCartCount, cx
+
+    ; bx = index
+    xor bx, bx
+    mov bl, cartIndexMax
+    sub bx, cx
+
     ; Print Number in sequence starting from 1
     mov dx, bx
     add dx, 1
     add dx, 48
     mov ah, 2
     int 21h
-
-    mov ah, 9
+    
+    mov ah, 09h
     mov dx, offset viewCart2
     int 21h
 
-    continueLoopViewCart:
+    mov si, offset cartIndex
+    add si, bx
+    xor cx, cx
+    mov cl, [si] ; cl = index of the fruit in cart array
+
+    ; ax = index * 2
+    ; offset for dw
+    xor ax, ax
+    mov al, cl
+    mov bl, 2
+    mul bl
+
+    ; Print Fruit Name
+    mov si, offset fruitsNameLong
+    add si, ax
+    mov dx, [si]
+    mov ah, 9
+    int 21h
+
+    mov ah, 09h
+    mov dx, offset viewCart3
+    int 21h
+
+    ; Print Fruit quantity in cart
+    mov si, offset cart
+    add si, cx
+    mov ax, [si]
+    mov num, ax
+    call printNumber
+    
+    mov ah, 2
+    mov dl, ')'
+    int 21h
+
+    call newline
     mov cx, tmpViewCartCount
-    loop loopViewCart
+    loop loopPrintViewCart
 
     exitViewCartLoop:
     ret
