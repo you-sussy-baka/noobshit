@@ -1,5 +1,5 @@
 .model small
-.stack 100h
+.stack 5000h
 .data
     ; Divider
     divider     db '=-=-=-=-=-=-=-=-=-=-=-$'
@@ -680,7 +680,7 @@ viewCart proc
     ret
 viewCart endp
 
-editCart proc ; unfinish
+editCart proc
     editCartLoop:
     call newline
     call newline
@@ -694,20 +694,50 @@ editCart proc ; unfinish
     mov inputNumberMax, 10 ; Accept 0-99, 2 digits
     call inputNumber
 
-    cmp inputNumberI, 0
-    je removeItemFromCart
+    cmp inputNumberI, 10
+    jg editCartInvalidTen
 
+    ; bx = selectedBuyFruits
+    xor bx, bx
+    mov bl, selectedBuyFruits
 
+    ; cx = bx * 2
+    ; offset for dw (2 bytes)
+    mov ax, bx
+    mov dl, 2
+    mul dl
+    mov cx, ax
 
-    removeItemFromCart:
+    ; stock[selectedBuyFruits] += cart[selectedBuyFruits]
+    mov si, offset cart
+    add si, bx
+    xor ax, ax
+    mov al, [si] ; al = cart[selectedBuyFruits]
+    mov si, offset fruitsStock
+    add si, cx
+    add [si], ax
 
+    ; stock[selectedBuyFruits] -= inputNumberI
+    mov si, offset fruitsStock
+    add si, cx
+    mov ax, inputNumberI
+    sub [si], ax
 
+    ; cart[selectedBuyFruits] = inputNumberI
+    mov si, offset cart
+    add si, bx
+    mov ax, inputNumberI
+    mov [si], al
 
-    exitEditCartLoop:
     ret
+
+    editCartInvalidTen:
+    mov dx, offset invalidAddToCart1
+    call invalidMsg
+    jmp editCartLoop
 editCart endp
 
-checkout proc
+checkout proc ; unfinish
     ret
 checkout endp
 
