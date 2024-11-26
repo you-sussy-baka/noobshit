@@ -45,6 +45,14 @@
     invalidAddToCart1 db 'Error: You can only add up to 10 of each fruit to your cart$'
     invalidAddToCart2 db 'Error: Not enough stock! Try again$'
 
+    ; View Cart
+    viewCart1 db 'Select an item you wish to edit in your cart$'
+    viewCart2 db '. $'
+    viewCart3 db '(×'
+    viewCart4 db 'Checkout$'
+    viewCart5 db 'Back to Main Menu$'
+    tmpViewCartCount dw 0
+
     ; System Shutdown
     shutdown db 'Shutting down...$'
     
@@ -72,6 +80,8 @@
 
     ; Cart
     cart db 7 dup(0)
+    cartIndex db 7 dup(0)
+    cartIndexMax db 0
 
     ; Plastic Bag
     pFBag       db 50 ;RM0.50
@@ -500,7 +510,58 @@ addToCart proc
 addToCart endp
 
 viewCart proc
+    viewCartLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
 
+    mov ah, 9
+    mov dx, offset viewCart1
+    int 21h
+    call newline
+
+    mov cartIndexMax, 0
+    mov cx, fruitsLength
+    loopViewCart:
+    ; save cx
+    mov tmpViewCartCount, cx
+
+    ; bx = index
+    mov bx, fruitsLength
+    sub bx, cx
+
+    mov si, offset cart
+    add si, bx
+    xor cx, cx
+    mov cl, [si]
+
+    ; If the fruit is not in the cart
+    cmp al, 0
+    je continueLoopViewCart
+
+    ; Store cart index
+    mov di, offset cartIndex
+    add di, bx
+    mov [di], bx
+    inc cartIndexMax
+
+    ; Print Number in sequence starting from 1
+    mov dx, bx
+    add dx, 1
+    add dx, 48
+    mov ah, 2
+    int 21h
+
+    mov ah, 9
+    mov dx, offset viewCart2
+    int 21h
+
+    continueLoopViewCart:
+    mov cx, tmpViewCartCount
+    loop loopViewCart
+
+    exitViewCartLoop:
     ret
 viewCart endp
 
