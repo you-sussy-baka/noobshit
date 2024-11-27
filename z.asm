@@ -17,7 +17,7 @@
     login1 db 'You are a...$'
     login2 db '1. Customer$'
     login3 db '2. Staff$'
-    exitLoginLoop db 0
+    exitLoginLoop db 0 ; 0 = false, 1 = true
 
     ; Customer Menu
     customer1 db 'Welcome Dear Customer! What would you like to do?$'
@@ -83,7 +83,7 @@
     staff1 db 'Welcome Dear Staff! What would you like to do?$'
     staff2 db '1. Edit Fruits$'
     staff3 db '2. View Summary Report$'
-    staff4 db '3. Shutdown Program$'
+    staff4 db '3. Shutdown$'
     staff5 db '4. Log Out$'
     
     ; System Shutdown
@@ -93,6 +93,10 @@
     staffPassword db '1', '2', '3', '4', '5', '6'
     staffPasswordLength equ 6
     staffPasswordValid db 1 ; 0 for false, 1 for true
+
+    ; Edit Fruits
+    editFruits1 db 'What would you like to edit?$'
+    selectedEditFruits db 0
     
     ; Fruits (apple 2.2, orange 1.8, papaya 5, watermelon 18, pear 4.5, guava 2.5, durian 50)
     fruitsNamepointerApple      db 'apple$'
@@ -1256,9 +1260,182 @@ staffLogin proc
 staffLogin endp
 
 staff proc
+    staffLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+    mov ah, 9
+    mov dx, offset staff1
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset staff2
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset staff3
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset staff4
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset staff5
+    int 21h
+    call newline
+
+    call input
+    cmp inputChar, '1'
+    je editFruitsOption
+    cmp inputChar, '2'
+    je summaryReportOption
+    cmp inputChar, '3'
+    je shutdownOption
+    cmp inputChar, '4'
+    je exitStaffLoop
+
+    ; Invalid Input
+    mov invalidNumberMax, 4
+    call invalidNumber
+    jmp staffLoop
+
+    editFruitsOption:
+    call editFruits
+    jmp staffLoop
+    summaryReportOption:
+    call summaryReport
+    jmp staffLoop
+    shutdownOption:
     mov exitLoginLoop, 1
+
+    exitStaffLoop:
     ret
 staff endp
+
+editFruits proc
+    editFruitsLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+    mov ah, 9
+    mov dx, offset editFruits1
+    int 21h
+    call newline
+    
+    mov cx, fruitsLength
+    printEditFruits:
+    ; save cx
+    push cx
+
+    ; bx = index
+    mov bx, fruitsLength
+    sub bx, cx
+
+    ; Print Number in sequence starting from 1
+    mov dx, bx
+    add dx, 1
+    add dx, 48
+    mov ah, 2
+    int 21h
+
+    mov ah, 9
+    mov dx, offset buyFruits2
+    int 21h
+
+    ; cx = index * 2
+    ; used for dw array offset
+    mov ax, bx
+    mov dl, 2
+    mul dl
+    mov cx, ax
+    push cx ; save cx used for stock
+    
+    ; Print Fruit Name
+    mov si, offset fruitsNameLong
+    add si, cx
+    mov dx, [si]
+    mov ah, 9
+    int 21h
+
+    mov ah, 9
+    mov dx, offset buyFruits3
+    int 21h
+
+    ; Print Fruit Price
+    mov si, offset fruitsIPrice
+    add si, bx
+    xor ax, ax
+    mov al, [si]
+    mov printPriceI, ax
+    mov si, offset fruitsFPrice
+    add si, bx
+    xor ax, ax
+    mov al, [si]
+    mov printPriceF, ax
+    call printPrice
+
+    call tab
+
+    mov ah, 2
+    mov dl, '('
+    int 21h
+
+    ; Print Stock
+    mov si, offset fruitsStock
+    pop cx ; cx = index * 2
+    add si, cx
+    mov ax, [si]
+    mov num, ax
+    call printNumber
+
+    mov ah, 9
+    mov dx, offset buyFruits4
+    int 21h
+ 
+    call newline
+    pop cx
+    loop printEditFruits
+
+    mov ah, 9
+    mov dx, offset buyFruits5
+    int 21h
+    call newline
+
+    call input
+    cmp inputChar, '8'
+    je exitEditFruitsLoop
+    cmp inputChar, '1'
+    jl invalidEditFruitsInput
+    cmp inputChar, '7'
+    jg invalidEditFruitsInput
+
+    xor ax, ax
+    mov al, inputChar
+    mov selectedEditFruits, al
+    sub selectedEditFruits, 48
+    dec selectedEditFruits ; '1' -> 0
+    call selectEditFruits
+    jmp editFruitsLoop
+
+    invalidEditFruitsInput:
+    mov invalidNumberMax, 8
+    call invalidNumber
+    jmp editFruitsLoop
+
+    exitEditFruitsLoop:
+    ret
+editFruits endp
+
+selectEditFruits proc
+    ret
+selectEditFruits endp
+
+summaryReport proc
+    ret
+summaryReport endp
 
 fruitStoreTitle proc
     call newline
