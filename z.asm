@@ -16,14 +16,14 @@
     ; Login Screen
     login1 db 'You are a...$'
     login2 db '1. Customer$'
-    login3 db '2. Admin$'
+    login3 db '2. Staff$'
     exitLoginLoop db 0
 
     ; Customer Menu
-    customer1 db 'Welcome! What would you like to do?$'
+    customer1 db 'Welcome Dear Customer! What would you like to do?$'
     customer2 db '1. Buy Fruits$'
     customer3 db '2. View Cart$'
-    customer4 db '3. Logout$'
+    customer4 db '3. Log Out$'
 
     ; Buy Fruits
     buyFruits1 db 'What would you like to buy?$'
@@ -73,9 +73,26 @@
     cash2 db 'Enter amount > RM $'
     cash3 db 'The change is RM $'
     invalidCash1 db 'Error: Insufficient amount! Try a higher amount$'
+
+    ; Staff Login
+    staffLogin1 db 'Esc to exit$'
+    staffLogin2 db 'Enter password (6 characters) > $'
+    invalidStaffLogin1 db 'Error: Invalid password! Try again$'
+
+    ; Staff Menu
+    staff1 db 'Welcome Dear Staff! What would you like to do?$'
+    staff2 db '1. Edit Fruits$'
+    staff3 db '2. View Summary Report$'
+    staff4 db '3. Shutdown Program$'
+    staff5 db '4. Log Out$'
     
     ; System Shutdown
     shutdown db 'Shutting down...$'
+
+    ; Staff
+    staffPassword db '1', '2', '3', '4', '5', '6'
+    staffPasswordLength equ 6
+    staffPasswordValid db 1 ; 0 for false, 1 for true
     
     ; Fruits (apple 2.2, orange 1.8, papaya 5, watermelon 18, pear 4.5, guava 2.5, durian 50)
     fruitsNamepointerApple      db 'apple$'
@@ -199,7 +216,7 @@ main proc
     cmp inputChar, '1'
     je customerOption
     cmp inputChar, '2'
-    je adminOption
+    je staffOption
 
     ; Invalid Input
     mov invalidNumberMax, 2
@@ -209,8 +226,8 @@ main proc
     customerOption:
     call customer
     jmp loginLoop
-    adminOption:
-    call admin
+    staffOption:
+    call staffLogin
     jmp loginLoop
 
     exit:
@@ -1185,10 +1202,63 @@ cash proc
     ret
 cash endp
 
-admin proc
+staffLogin proc
+    staffLoginLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+    mov dx, offset staffLogin1
+    mov ah, 9
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset staffLogin2
+    int 21h
+
+    mov staffPasswordValid, 1
+    mov cx, staffPasswordLength
+    loopStaffPassword:
+    mov ah, 7 ; get char
+    int 21h
+
+    cmp al, 27 ; Escape
+    je exitStaffLoginLoop
+
+    mov bx, staffPasswordLength
+    sub bx, cx ; bx = index
+    mov si, offset staffPassword
+    add si, bx
+    
+    cmp al, [si]
+    je validPassword
+    mov staffPasswordValid, 0
+    validPassword:
+    mov ah, 2
+    mov dl, '*'
+    int 21h
+    
+    loop loopStaffPassword
+
+    cmp staffPasswordValid, 1
+    je loginToStaff
+
+    ; Invalid Password
+    mov dx, offset invalidStaffLogin1
+    call invalidMsg
+    jmp staffLoginLoop
+
+    loginToStaff:
+    call staff
+    
+    exitStaffLoginLoop:
+    ret
+staffLogin endp
+
+staff proc
     mov exitLoginLoop, 1
     ret
-admin endp
+staff endp
 
 fruitStoreTitle proc
     call newline
