@@ -61,11 +61,12 @@
 
     ; Payment
     payment1 db 'RM $'
-    payment2 db 'Choose a payment method$'
-    payment3 db '1. Cash$'
-    payment4 db '2. Touch n Go E-Wallet$'
-    payment5 db 'Payment Successful!$'
-    payment6 db 'Thank you for your purchase! Have a nice day!$'
+    payment2 db 'Total       $'
+    payment3 db 'Choose a payment method$'
+    payment4 db '1. Cash$'
+    payment5 db '2. Touch n Go E-Wallet$'
+    payment6 db 'Payment Successful!$'
+    payment7 db 'Thank you for your purchase! Have a nice day!$'
 
     ; System Shutdown
     shutdown db 'Shutting down...$'
@@ -878,7 +879,7 @@ plastic proc
     ret
 plastic endp
 
-payment proc ; unfinish
+payment proc
     paymentLoop:
     call newline
     call newline
@@ -962,9 +963,22 @@ payment proc ; unfinish
     call floatMul
     mov ax, floatMulI
     mov printPriceI, ax
+    add cartTotalI, ax
     mov ax, floatMulF
     mov printPriceF, ax
+    add cartTotalF, ax
     call printPrice
+    
+    ; Round up total
+    mov ax, cartTotalI
+    mov roundUpI, ax
+    mov ax, cartTotalF
+    mov roundUpF, ax
+    call roundUp
+    mov ax, roundUpI
+    mov cartTotalI, ax
+    mov ax, roundUpF
+    mov cartTotalF, ax
 
     call newline
     pop cx
@@ -972,31 +986,59 @@ payment proc ; unfinish
     cmp cx, 0
     jne dummyLable
 
-    cmp wantPlasticBag, 1
+    cmp wantPlasticBag, 0
     je continueWithoutPlasticBag
 
+    ; Add plastic bag price to total
+    xor ax, ax
+    mov al, pFBag
+    add cartTotalF, ax
+
+    ; Round up total
+    mov ax, cartTotalI
+    mov roundUpI, ax
+    mov ax, cartTotalF
+    mov roundUpF, ax
+    call roundUp
+    mov ax, roundUpI
+    mov cartTotalI, ax
+    mov ax, roundUpF
+    mov cartTotalF, ax
+
     ; Print Plastic Bag
-    call newline
     mov ah, 9
     mov dx, offset PBagString
     int 21h
     call tab
+    call tab
     mov ah, 9
     mov dx, offset payment1
     int 21h
-    mov ax, pFBag
+    xor ax, ax
+    mov al, pFBag
     mov printPriceF, ax
     mov printPriceI, 0
     call printPrice
+    call newline
 
     continueWithoutPlasticBag:
 
     ; Print Total Price
-
-    call newline
     mov ah, 9
     mov dx, offset payment2
     int 21h
+    call tab
+    call tab
+    mov ah, 9
+    mov dx, offset payment1
+    int 21h
+    mov ax, cartTotalI
+    mov printPriceI, ax
+    mov ax, cartTotalF
+    mov printPriceF, ax
+    call printPrice
+
+    call newline
     call newline
     mov ah, 9
     mov dx, offset payment3
@@ -1004,6 +1046,10 @@ payment proc ; unfinish
     call newline
     mov ah, 9
     mov dx, offset payment4
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset payment5
     int 21h
     call newline
 
@@ -1026,7 +1072,7 @@ payment proc ; unfinish
     touchnGoOption:
     call newline
     mov ah, 9
-    mov dx, offset payment5
+    mov dx, offset payment6
     int 21h
     jmp exitPaymentLoop
 
@@ -1034,7 +1080,7 @@ payment proc ; unfinish
     call newline
     call newline
     mov ah, 9
-    mov dx, offset payment6
+    mov dx, offset payment7
     int 21h
     ret
 payment endp
