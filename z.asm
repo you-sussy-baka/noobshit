@@ -64,7 +64,8 @@
     payment2 db 'Choose a payment method$'
     payment3 db '1. Cash$'
     payment4 db '2. Touch n Go E-Wallet$'
-    payment5 db 'Thank you for your purchase! Have a nice day!$'
+    payment5 db 'Payment Successful!$'
+    payment6 db 'Thank you for your purchase! Have a nice day!$'
 
     ; System Shutdown
     shutdown db 'Shutting down...$'
@@ -983,18 +984,36 @@ payment proc ; unfinish
     je cashOption
     cmp inputChar, '2'
     je touchnGoOption
+
+    ; Invalid Input
+    mov invalidNumberMax, 2
+    call invalidNumber
+
     jmp paymentLoop
 
     cashOption:
+    call cash
     jmp exitPaymentLoop
 
     touchnGoOption:
+    call newline
+    mov ah, 9
+    mov dx, offset payment5
+    int 21h
     jmp exitPaymentLoop
 
     exitPaymentLoop:
-
+    call newline
+    call newline
+    mov ah, 9
+    mov dx, offset payment5
+    int 21h
     ret
 payment endp
+
+cash proc
+    ret
+cash endp
 
 admin proc
     mov exitLoginLoop, 1
