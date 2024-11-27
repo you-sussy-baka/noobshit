@@ -97,6 +97,9 @@
 
     ; Payment
     payment1 db 'RM $'
+    payment2 db 'Choose a payment method$'
+    payment3 db '1. Cash$'
+    payment4 db '2. Credit Card$'
 
     ; Summary Report
     fruitsSold db 7 dup(0)
@@ -925,7 +928,12 @@ payment proc ; unfinish
     mov ah, 2
     mov dl, ')'
     int 21h
+    jmp continuePrintPaymentLoop
 
+    dummyLable:
+    jmp loopPrintPayment
+
+    continuePrintPaymentLoop:
     call tab
     mov ah, 9
     mov dx, offset payment1
@@ -951,7 +959,25 @@ payment proc ; unfinish
 
     call newline
     pop cx
-    loop loopPrintPayment
+    dec cx
+    cmp cx, 0
+    jne dummyLable
+
+    call newline
+    mov ah, 9
+    mov dx, offset payment2
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset payment3
+    int 21h
+    call newline
+    mov ah, 9
+    mov dx, offset payment4
+    int 21h
+    call newline
+
+    call input
 
     exitPaymentLoop:
     ret
