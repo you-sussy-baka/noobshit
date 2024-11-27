@@ -55,6 +55,10 @@
     ; Edit Cart
     editCart1 db 'Enter quantity (0 to remove) > $'
 
+    ; Checkout
+    checkout1 db 'Are you sure you want to proceed? (Y/N)$'
+    invalidCheckout1 db 'Error: Invalid option! You can only choose Y or N$'
+
     ; System Shutdown
     shutdown db 'Shutting down...$'
     
@@ -86,8 +90,13 @@
     cartIndexMax db 0
 
     ; Plastic Bag
+    plastic1 db 'Do you want a plastic bag? (Y/N)$'
     pFBag       db 50 ;RM0.50
     PBagString  db 'Plastic Bag $'
+    wantPlasticBag db 0
+
+    ; Payment
+    payment1 db 'RM $'
 
     ; Summary Report
     fruitsSold db 7 dup(0)
@@ -99,7 +108,7 @@
 
     ; Invalid Number Proc
     invalidNumberMax db 0
-    invalidNumberString db 'Invalid option! You can only choose 1$'
+    invalidNumberString db 'Error: Invalid option! You can only choose 1$'
     invalidNumberOr db " or 2$"
 
     ; Print Number Proc (32767 is max value)
@@ -674,7 +683,6 @@ viewCart proc
 
     checkoutOption:
     call checkout
-    jmp viewCartLoop
 
     exitViewCartLoop:
     ret
@@ -737,9 +745,217 @@ editCart proc
     jmp editCartLoop
 editCart endp
 
-checkout proc ; unfinish
+checkout proc
+    checkoutLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+
+    ; Print fruits that are in the cart
+    xor cx, cx
+    mov cl, cartIndexMax
+    loopPrintCheckout:
+    ; save cx
+    push cx
+
+    ; bx = index
+    xor bx, bx
+    mov bl, cartIndexMax
+    sub bx, cx
+
+    mov si, offset cartIndex
+    add si, bx
+    xor cx, cx
+    mov cl, [si] ; cl = real index of the fruit in cart array
+
+    ; ax = index * 2
+    ; offset for dw (2 bytes)
+    xor ax, ax
+    mov al, cl
+    mov bl, 2
+    mul bl
+
+    ; Print Fruit Name
+    mov si, offset fruitsNameLong
+    add si, ax
+    mov dx, [si]
+    mov ah, 9
+    int 21h
+
+    mov ah, 9
+    mov dx, offset viewCart3
+    int 21h
+
+    ; Print Fruit quantity in cart
+    mov si, offset cart
+    add si, cx
+    xor ax, ax
+    mov al, [si]
+    mov num, ax
+    call printNumber
+    
+    mov ah, 2
+    mov dl, ')'
+    int 21h
+
+    call newline
+    pop cx
+    loop loopPrintCheckout
+
+    call newline
+    mov ah, 9
+    mov dx, offset checkout1
+    int 21h
+    call newline
+
+    call input
+    cmp inputChar, 'Y'
+    je paymentOption
+    cmp inputChar, 'y'
+    je paymentOption
+    cmp inputChar, 'N'
+    je exitCheckoutLoop
+    cmp inputChar, 'n'
+    je exitCheckoutLoop
+
+    ; Invalid Input
+    mov dx, offset invalidCheckout1
+    call invalidMsg
+    jmp checkoutLoop
+
+    paymentOption:
+    call plastic
+
+    exitCheckoutLoop:
     ret
 checkout endp
+
+plastic proc
+    plasticLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+
+    mov ah, 9
+    mov dx, offset plastic1
+    int 21h
+    call newline
+
+    call input
+    cmp inputChar, 'Y'
+    je plasticYesOption
+    cmp inputChar, 'y'
+    je plasticYesOption
+    cmp inputChar, 'N'
+    je plasticNoOption
+    cmp inputChar, 'n'
+    je plasticNoOption
+
+    ; Invalid Input
+    mov dx, offset invalidCheckout1
+    call invalidMsg
+    jmp plasticLoop
+
+    plasticYesOption:
+    mov wantPlasticBag, 1
+    jmp exitPlasticLoop
+
+    plasticNoOption:
+    mov wantPlasticBag, 0
+    jmp exitPlasticLoop
+
+    exitPlasticLoop:
+    call payment
+    ret
+plastic endp
+
+payment proc ; unfinish
+    paymentLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+
+    ; Print fruits that are in the cart
+    xor cx, cx
+    mov cl, cartIndexMax
+    loopPrintPayment:
+    ; save cx
+    push cx
+
+    ; bx = index
+    xor bx, bx
+    mov bl, cartIndexMax
+    sub bx, cx
+
+    mov si, offset cartIndex
+    add si, bx
+    xor cx, cx
+    mov cl, [si] ; cl = real index of the fruit in cart array
+
+    ; ax = index * 2
+    ; offset for dw (2 bytes)
+    xor ax, ax
+    mov al, cl
+    mov bl, 2
+    mul bl
+
+    ; Print Fruit Name
+    mov si, offset fruitsNameLong
+    add si, ax
+    mov dx, [si]
+    mov ah, 9
+    int 21h
+
+    mov ah, 9
+    mov dx, offset viewCart3
+    int 21h
+
+    ; Print Fruit quantity in cart
+    mov si, offset cart
+    add si, cx
+    xor ax, ax
+    mov al, [si]
+    mov num, ax
+    mov floatMultiplier, al
+    call printNumber
+    
+    mov ah, 2
+    mov dl, ')'
+    int 21h
+
+    call tab
+    mov ah, 9
+    mov dx, offset payment1
+    int 21h
+
+    ; Print price * quantity
+    mov si, offset fruitsIPrice
+    add si, cx
+    xor ax, ax
+    mov al, [si]
+    mov floatMulI, ax
+    mov si, offset fruitsFPrice
+    add si, cx
+    xor ax, ax
+    mov al, [si]
+    mov floatMulF, ax
+    call floatMul
+    mov ax, floatMulI
+    mov printPriceI, ax
+    mov ax, floatMulF
+    mov printPriceF, ax
+    call printPrice
+
+    call newline
+    pop cx
+    loop loopPrintPayment
+
+    exitPaymentLoop:
+    ret
+payment endp
 
 admin proc
     mov exitLoginLoop, 1
