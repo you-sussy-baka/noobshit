@@ -59,6 +59,13 @@
     checkout1 db 'Are you sure you want to proceed? (Y/N)$'
     invalidCheckout1 db 'Error: Invalid option! You can only choose Y or N$'
 
+    ; Payment
+    payment1 db 'RM $'
+    payment2 db 'Choose a payment method$'
+    payment3 db '1. Cash$'
+    payment4 db '2. Touch n Go E-Wallet$'
+    payment5 db 'Thank you for your purchase! Have a nice day!$'
+
     ; System Shutdown
     shutdown db 'Shutting down...$'
     
@@ -94,12 +101,6 @@
     pFBag       db 50 ;RM0.50
     PBagString  db 'Plastic Bag $'
     wantPlasticBag db 0
-
-    ; Payment
-    payment1 db 'RM $'
-    payment2 db 'Choose a payment method$'
-    payment3 db '1. Cash$'
-    payment4 db '2. Credit Card$'
 
     ; Summary Report
     fruitsSold db 7 dup(0)
@@ -978,8 +979,20 @@ payment proc ; unfinish
     call newline
 
     call input
+    cmp inputChar, '1'
+    je cashOption
+    cmp inputChar, '2'
+    je touchnGoOption
+    jmp paymentLoop
+
+    cashOption:
+    jmp exitPaymentLoop
+
+    touchnGoOption:
+    jmp exitPaymentLoop
 
     exitPaymentLoop:
+
     ret
 payment endp
 
