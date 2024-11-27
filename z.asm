@@ -96,6 +96,8 @@
     cart db 7 dup(0)
     cartIndex db 7 dup(0)
     cartIndexMax db 0
+    cartTotalI dw 0
+    cartTotalF dw 0
 
     ; Plastic Bag
     plastic1 db 'Do you want a plastic bag? (Y/N)$'
@@ -883,6 +885,9 @@ payment proc ; unfinish
     call newDivider
     call newline
 
+    mov cartTotalI, 0
+    mov cartTotalF, 0
+
     ; Print fruits that are in the cart
     xor cx, cx
     mov cl, cartIndexMax
@@ -925,6 +930,7 @@ payment proc ; unfinish
     mov al, [si]
     mov num, ax
     mov floatMultiplier, al
+    push cx
     call printNumber
     
     mov ah, 2
@@ -934,8 +940,8 @@ payment proc ; unfinish
 
     dummyLable:
     jmp loopPrintPayment
-
     continuePrintPaymentLoop:
+
     call tab
     mov ah, 9
     mov dx, offset payment1
@@ -943,6 +949,7 @@ payment proc ; unfinish
 
     ; Print price * quantity
     mov si, offset fruitsIPrice
+    pop cx
     add si, cx
     xor ax, ax
     mov al, [si]
@@ -964,6 +971,27 @@ payment proc ; unfinish
     dec cx
     cmp cx, 0
     jne dummyLable
+
+    cmp wantPlasticBag, 1
+    je continueWithoutPlasticBag
+
+    ; Print Plastic Bag
+    call newline
+    mov ah, 9
+    mov dx, offset PBagString
+    int 21h
+    call tab
+    mov ah, 9
+    mov dx, offset payment1
+    int 21h
+    mov ax, pFBag
+    mov printPriceF, ax
+    mov printPriceI, 0
+    call printPrice
+
+    continueWithoutPlasticBag:
+
+    ; Print Total Price
 
     call newline
     mov ah, 9
@@ -1006,7 +1034,7 @@ payment proc ; unfinish
     call newline
     call newline
     mov ah, 9
-    mov dx, offset payment5
+    mov dx, offset payment6
     int 21h
     ret
 payment endp
