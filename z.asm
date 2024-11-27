@@ -68,6 +68,12 @@
     payment6 db 'Payment Successful!$'
     payment7 db 'Thank you for your purchase! Have a nice day!$'
 
+    ; Cash
+    cash1 db 'You need to pay RM $'
+    cash2 db 'Enter amount > RM $'
+    cash3 db 'The change is RM $'
+    invalidCash1 db 'Error: Insufficient amount! Try a higher amount$'
+    
     ; System Shutdown
     shutdown db 'Shutting down...$'
     
@@ -107,9 +113,9 @@
     wantPlasticBag db 0
 
     ; Summary Report
-    fruitsSold db 7 dup(0)
-    totalProfitI dw 0
-    totalProfitF dw 0
+    fruitsSold dw 7 dup(0)
+    fruitsSoldPriceI dw 7 dup(0)
+    fruitsSoldPriceF dw 7 dup(0)
 
     ; System Pause
     syspauseString db 'Press any key to continue...$'
@@ -127,6 +133,13 @@
     printPriceI dw 0
     printPriceF dw 0
     printPriceCount db 0
+
+    ; Float Subtract Proc (minuend - subtrahend = difference)
+    floatSubMinuendI dw 0
+    floatSubMinuendF dw 0
+    floatSubSubtrahendI dw 0
+    floatSubSubtrahendF dw 0
+    floatSubError db 0 ; 0 for false, 1 for true
 
     ; Float Multiply Proc
     floatMulI dw 0
@@ -146,12 +159,12 @@
 
     ; Input Number Proc
     inputNumberI dw 0
-    inputNumberMax dw 0
+    inputNumberMax dw 0 ; 10 = Accept 0-99, 2 digits
 
     ; Input Price Proc
     inputPriceI dw 0
     inputPriceF dw 0
-    inputPriceMax dw 0
+    inputPriceMax dw 0 ; 10 = Accept 0-99, 2 digits
 
     ; Remove Char Proc
     removeCharCount db 0
@@ -199,11 +212,6 @@ main proc
     adminOption:
     call admin
     jmp loginLoop
-
-    testing:
-    call newline
-    call inputNumber
-    call newline
 
     exit:
     call newline
@@ -906,16 +914,18 @@ payment proc
     xor cx, cx
     mov cl, [si] ; cl = real index of the fruit in cart array
 
-    ; ax = index * 2
+    ; bx = index * 2
     ; offset for dw (2 bytes)
     xor ax, ax
     mov al, cl
     mov bl, 2
     mul bl
+    mov bx, ax
+    push bx
 
     ; Print Fruit Name
     mov si, offset fruitsNameLong
-    add si, ax
+    add si, bx
     mov dx, [si]
     mov ah, 9
     int 21h
@@ -924,33 +934,32 @@ payment proc
     mov dx, offset viewCart3
     int 21h
 
+    ; fruit sold += quantity
     ; Print Fruit quantity in cart
     mov si, offset cart
     add si, cx
+    mov di, offset fruitsSold
+    add di, bx ; fruitsSold is dw array
     xor ax, ax
     mov al, [si]
     mov num, ax
     mov floatMultiplier, al
+    add [di], ax
     push cx
     call printNumber
     
     mov ah, 2
     mov dl, ')'
     int 21h
-    jmp continuePrintPaymentLoop
-
-    dummyLable:
-    jmp loopPrintPayment
-    continuePrintPaymentLoop:
 
     call tab
     mov ah, 9
     mov dx, offset payment1
     int 21h
 
-    ; Print price * quantity
+    ; price * quantity
     mov si, offset fruitsIPrice
-    pop cx
+    pop cx ; cx = index
     add si, cx
     xor ax, ax
     mov al, [si]
@@ -961,12 +970,38 @@ payment proc
     mov al, [si]
     mov floatMulF, ax
     call floatMul
+
+    jmp continuePrintPaymentLoop
+    dummyLable:
+    jmp loopPrintPayment
+    continuePrintPaymentLoop:
+
+    ; total += price * quantity
+    ; fruit sold price += price * quantity
+    ; round up fruit sold price
+    ; Print price * quantity
+    pop cx ; cx = index * 2 (dw)
     mov ax, floatMulI
     mov printPriceI, ax
     add cartTotalI, ax
+    mov si, offset fruitsSoldPriceI
+    add si, cx
+    add [si], ax
     mov ax, floatMulF
     mov printPriceF, ax
     add cartTotalF, ax
+    mov di, offset fruitsSoldPriceF
+    add di, cx
+    add [di], ax
+    mov ax, [si]
+    mov roundUpI, ax
+    mov ax, [di]
+    mov roundUpF, ax
+    call roundUp
+    mov ax, roundUpI
+    mov [si], ax
+    mov ax, roundUpF
+    mov [di], ax
     call printPrice
     
     ; Round up total
@@ -1082,10 +1117,71 @@ payment proc
     mov ah, 9
     mov dx, offset payment7
     int 21h
+
+    ; Clear cart
+    mov si, offset cart
+    mov cx, fruitsLength
+    loopClearCart:
+    mov ax, 0
+    mov [si], ax
+    add si, 2
+    loop loopClearCart
     ret
 payment endp
 
 cash proc
+    cashLoop:
+    call newline
+    call newline
+    call newDivider
+    call newline
+
+    mov ah, 9
+    mov dx, offset cash1
+    int 21h
+    mov ax, cartTotalI
+    mov printPriceI, ax
+    mov ax, cartTotalF
+    mov printPriceF, ax
+    call printPrice
+
+    call newline
+    mov ah, 9
+    mov dx, offset cash2
+    int 21h
+
+    mov inputPriceMax, 1000 ; Accept 0-9999, 4 digits
+    call inputPrice
+    mov ax, inputPriceI
+    mov floatSubMinuendI, ax
+    mov ax, inputPriceF
+    mov floatSubMinuendF, ax
+    mov ax, cartTotalI
+    mov floatSubSubtrahendI, ax
+    mov ax, cartTotalF
+    mov floatSubSubtrahendF, ax
+    call floatSub
+
+    mov al, floatSubError
+    cmp al, 0
+    je exitCashLoop
+
+    ; Invalid Input
+    mov dx, offset invalidCash1
+    call invalidMsg
+
+    jmp cashLoop
+
+    exitCashLoop:
+    call newline
+    mov ah, 9
+    mov dx, offset cash3
+    int 21h
+    mov ax, floatSubMinuendI
+    mov printPriceI, ax
+    mov ax, floatSubMinuendF
+    mov printPriceF, ax
+    call printPrice
     ret
 cash endp
 
@@ -1258,6 +1354,33 @@ printPrice proc
 
     ret
 printPrice endp
+
+floatSub proc
+    mov floatSubError, 0
+
+    mov ax, floatSubMinuendF
+    cmp ax, floatSubSubtrahendF
+    jg subCarryEnd
+    dec floatSubMinuendI
+    add floatSubMinuendF, 100
+    subCarryEnd:
+
+    mov ax, floatSubMinuendI
+    cmp ax, floatSubSubtrahendI
+    jl subError
+
+    mov ax, floatSubSubtrahendI
+    sub floatSubMinuendI, ax
+    mov ax, floatSubSubtrahendF
+    sub floatSubMinuendF, ax
+
+    ; Result is stored in floatSubMinuend
+    ret
+
+    subError:
+    mov floatSubError, 1
+    ret
+floatSub endp
 
 floatMul proc
     mov ax, floatMulI
